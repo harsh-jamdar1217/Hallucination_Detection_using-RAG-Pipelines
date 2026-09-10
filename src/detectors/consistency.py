@@ -1,6 +1,13 @@
 import ollama
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
-def generate_multiple_answers(query, context, n=5, model="llama3", temperature=0.7):
+
+def generate_multiple_answers(query, context, n=3, model="llama3", temperature=0.7, generate_fn=None):
+    if generate_fn is not None:
+        return [generate_fn(query, context, temperature) for _ in range(n)]
+
     context_text = context if isinstance(context, str) else "\n".join(context)
 
     prompt = f"""Answer the question using ONLY the context below. If the context doesn't contain the answer, say "I don't know based on the given context."
@@ -22,11 +29,9 @@ Answer:"""
         answers.append(response['response'].strip())
     return answers
 
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 
 model_embed = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
 
 def consistency_score(answers):
     if len(answers) < 2:
@@ -43,10 +48,12 @@ def consistency_score(answers):
 
     return float(np.mean(pairwise_scores))
 
-def check_self_consistency(query, context, n=5, model="llama3"):
-    answers = generate_multiple_answers(query, context, n=n, model=model)
+
+def check_self_consistency(query, context, n=3, model="llama3", generate_fn=None):
+    answers = generate_multiple_answers(query, context, n=n, model=model, generate_fn=generate_fn)
     score = consistency_score(answers)
     return {"answers": answers, "consistency_score": score}
+
 
 if __name__ == "__main__":
     context = ["The Statue of Liberty is made of copper. It was a gift from France, completed in 1886."]

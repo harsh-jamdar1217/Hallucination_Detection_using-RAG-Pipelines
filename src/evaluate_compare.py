@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import time
 from src.load_ragtruth import load_ragtruth, get_binary_label
@@ -86,7 +86,7 @@ def run_comparison_evaluation(num_examples=500, checkpoint_path="eval_compare_re
                 json.dump(results, f, indent=2)
             print(f"--- checkpoint saved at {i+1}/{total} ---")
 
-        time.sleep(1)
+        time.sleep(4)
 
     return results
 
