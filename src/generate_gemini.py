@@ -20,7 +20,7 @@ Answer:"""
     return prompt
 
 
-def generate_gemini_for_consistency(query, context, temperature=0.7, model="gemini-2.5-flash-lite"):
+def generate_gemini_for_consistency(query, context, temperature=0.7, model="gemini-3.5-flash-lite"):
     prompt = build_prompt(query, context)
     response = client.models.generate_content(
         model=model,
@@ -30,7 +30,7 @@ def generate_gemini_for_consistency(query, context, temperature=0.7, model="gemi
     return response.text.strip()
 
 
-def generate_answer_gemini(query, chunks, model="gemini-2.5-flash-lite", max_retries=3):
+def generate_answer_gemini(query, chunks, model="gemini-3.5-flash-lite", max_retries=3):
     prompt = build_prompt(query, chunks)
 
     for attempt in range(max_retries):

@@ -7,9 +7,8 @@
       "min_trust_score": 1.0
     },
     "gemini": {
-      "predicted_hallucinated": null,
-      "min_trust_score": null,
-      "error": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and improvements. We recommend you to use the Interactions API.', 'status': 'NOT_FOUND'}}"
+      "predicted_hallucinated": 1,
+      "min_trust_score": 0.4993897870182991
     }
   },
   {
@@ -17,25 +16,23 @@
     "true_label": 0,
     "llama": {
       "predicted_hallucinated": 0,
-      "min_trust_score": 0.5482509762048722
+      "min_trust_score": 0.6694030940532684
     },
     "gemini": {
-      "predicted_hallucinated": null,
-      "min_trust_score": null,
-      "error": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and improvements. We recommend you to use the Interactions API.', 'status': 'NOT_FOUND'}}"
+      "predicted_hallucinated": 0,
+      "min_trust_score": 0.757457560300827
     }
   },
   {
     "id": "26",
     "true_label": 0,
     "llama": {
-      "predicted_hallucinated": 1,
-      "min_trust_score": 0.4618443131446838
+      "predicted_hallucinated": 0,
+      "min_trust_score": 0.6674773871898652
     },
     "gemini": {
-      "predicted_hallucinated": null,
-      "min_trust_score": null,
-      "error": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and improvements. We recommend you to use the Interactions API.', 'status': 'NOT_FOUND'}}"
+      "predicted_hallucinated": 0,
+      "min_trust_score": 0.5274208068847657
     }
   },
   {
@@ -46,9 +43,8 @@
       "min_trust_score": 1.0
     },
     "gemini": {
-      "predicted_hallucinated": null,
-      "min_trust_score": null,
-      "error": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and improvements. We recommend you to use the Interactions API.', 'status': 'NOT_FOUND'}}"
+      "predicted_hallucinated": 0,
+      "min_trust_score": 0.54899962246418
     }
   },
   {
@@ -59,9 +55,8 @@
       "min_trust_score": 1.0
     },
     "gemini": {
-      "predicted_hallucinated": null,
-      "min_trust_score": null,
-      "error": "404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash-lite is no longer available to new users. Please update your code to use models/gemini-3.5-flash-lite for the latest features and improvements. We recommend you to use the Interactions API.', 'status': 'NOT_FOUND'}}"
+      "predicted_hallucinated": 0,
+      "min_trust_score": 0.560349953174591
     }
   }
 ]
