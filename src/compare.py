@@ -1,119 +1,81 @@
-import json
-import os
-import time
-from src.load_ragtruth import load_ragtruth, get_binary_label
-from src.generate_gemini import generate_answer_gemini, generate_gemini_for_consistency
+from src.retrieve import load_vectorstore, retrieve_chunks
+from src.generate import generate_answer
+from src.generate_gemini import generate_answer_gemini
 from src.trust_score import evaluate_answer
-import ollama
 
 
-def generate_llama_for_eval(query, context):
-    prompt = f"""Answer the question using ONLY the context below. If the context doesn't contain the answer, say "I don't know based on the given context."
-
-Context:
-{context}
-
-Question: {query}
-
-Answer:"""
-    response = ollama.generate(model="llama3", prompt=prompt)
-    return response['response'].strip()
-
-
-def generate_llama_for_consistency(query, context, temperature=0.7):
-    prompt = f"""Answer the question using ONLY the context below. If the context doesn't contain the answer, say "I don't know based on the given context."
-
-Context:
-{context}
-
-Question: {query}
-
-Answer:"""
-    response = ollama.generate(model="llama3", prompt=prompt, options={"temperature": temperature})
-    return response['response'].strip()
-
-
-def get_model_result(query, answer, context, generate_fn, threshold=0.5):
-    sentence_results = evaluate_answer(query, answer, context, threshold=threshold, consistency_generate_fn=generate_fn)
+def get_overall_trust(query, answer, context):
+    sentence_results = evaluate_answer(query, answer, context)
     if not sentence_results:
-        return {"predicted_hallucinated": 0, "min_trust_score": 1.0}
-    min_trust = min(r["trust_score"] for r in sentence_results)
-    return {"predicted_hallucinated": 1 if min_trust < threshold else 0, "min_trust_score": min_trust}
+        return 1.0, sentence_results
+    overall = min(r["trust_score"] for r in sentence_results)
+    return overall, sentence_results
 
 
-def run_comparison_evaluation(num_examples=500, checkpoint_path="eval_compare_results.json", checkpoint_every=10):
-    dataset = load_ragtruth()
-    test_set = dataset["test"].select(range(num_examples))
+def compare_models(query, k=3):
+    vectorstore = load_vectorstore()
+    chunks = retrieve_chunks(vectorstore, query, k=k)
+    context = [c.page_content for c in chunks]
 
-    results = []
-    start_idx = 0
-    if os.path.exists(checkpoint_path):
-        with open(checkpoint_path, "r") as f:
-            results = json.load(f)
-        start_idx = len(results)
-        print(f"Resuming from checkpoint: {start_idx} examples already done")
+    llama_answer = generate_answer(query, chunks)
+    gemini_answer = generate_answer_gemini(query, context)
 
-    total = len(test_set)
-    for i in range(start_idx, total):
-        example = test_set[i]
-        query = example["query"]
-        context = example["context"]
-        true_label = get_binary_label(example)
+    llama_trust, llama_details = get_overall_trust(query, llama_answer, context)
+    gemini_trust, gemini_details = get_overall_trust(query, gemini_answer, context)
 
-        entry = {"id": example["id"], "true_label": true_label}
+    effective_model = "Llama 3" if llama_trust >= gemini_trust else "Gemini"
+    effective_answer = llama_answer if llama_trust >= gemini_trust else gemini_answer
 
-        try:
-            llama_answer = generate_llama_for_eval(query, context)
-            llama_result = get_model_result(query, llama_answer, context, generate_llama_for_consistency)
-            entry["llama"] = llama_result
-        except Exception as e:
-            entry["llama"] = {"predicted_hallucinated": None, "min_trust_score": None, "error": str(e)}
-
-        try:
-            gemini_answer = generate_answer_gemini(query, context)
-            gemini_result = get_model_result(query, gemini_answer, context, generate_gemini_for_consistency)
-            entry["gemini"] = gemini_result
-        except Exception as e:
-            entry["gemini"] = {"predicted_hallucinated": None, "min_trust_score": None, "error": str(e)}
-
-        results.append(entry)
-        print(f"[{i+1}/{total}] id={example['id']} true={true_label} "
-              f"llama={entry['llama'].get('predicted_hallucinated')} "
-              f"gemini={entry['gemini'].get('predicted_hallucinated')}")
-
-        if (i + 1) % checkpoint_every == 0 or (i + 1) == total:
-            with open(checkpoint_path, "w") as f:
-                json.dump(results, f, indent=2)
-            print(f"--- checkpoint saved at {i+1}/{total} ---")
-
-        time.sleep(1)
-
-    return results
+    return {
+        "query": query,
+        "context": context,
+        "llama": {"answer": llama_answer, "trust_score": llama_trust, "details": llama_details},
+        "gemini": {"answer": gemini_answer, "trust_score": gemini_trust, "details": gemini_details},
+        "effective_model": effective_model,
+        "effective_answer": effective_answer
+    }
 
 
-def compute_model_metrics(results, model_key, threshold=0.5):
-    valid = [r for r in results if r.get(model_key, {}).get("min_trust_score") is not None]
-    y_true = [r["true_label"] for r in valid]
-    y_pred = [1 if r[model_key]["min_trust_score"] < threshold else 0 for r in valid]
+def print_result(result):
+    print(f"\n{'='*60}")
+    print(f"Query: {result['query']}")
+    print(f"{'='*60}\n")
 
-    tp = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 1)
-    fp = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 1)
-    fn = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 0)
-    tn = sum(1 for t, p in zip(y_true, y_pred) if t == 0 and p == 0)
+    print(f"--- Llama 3 (trust={result['llama']['trust_score']:.3f}) ---")
+    print(result['llama']['answer'])
+    llama_flagged = [d for d in result['llama']['details'] if d['flagged']]
+    if llama_flagged:
+        print(f"⚠️  {len(llama_flagged)} sentence(s) flagged as possible hallucination:")
+        for f in llama_flagged:
+            print(f"   - {f['sentence']}")
+    print()
 
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
-    accuracy = (tp + tn) / len(y_true) if y_true else 0.0
+    print(f"--- Gemini (trust={result['gemini']['trust_score']:.3f}) ---")
+    print(result['gemini']['answer'])
+    gemini_flagged = [d for d in result['gemini']['details'] if d['flagged']]
+    if gemini_flagged:
+        print(f"⚠️  {len(gemini_flagged)} sentence(s) flagged as possible hallucination:")
+        for f in gemini_flagged:
+            print(f"   - {f['sentence']}")
+    print()
 
-    return {"precision": precision, "recall": recall, "f1": f1, "accuracy": accuracy, "n": len(valid)}
+    print(f"✅ Effective answer (from {result['effective_model']}):")
+    print(result['effective_answer'])
+    print(f"{'='*60}\n")
 
 
 if __name__ == "__main__":
-    print("Running dry run on 5 examples first...")
-    results = run_comparison_evaluation(num_examples=5, checkpoint_path="eval_compare_dry_run.json")
+    print("Hallucination Detection Bot — Llama 3 vs Gemini")
+    print("Type your question and press Enter. Type 'exit' or 'quit' to stop.\n")
 
-    print("\n--- Llama metrics ---")
-    print(compute_model_metrics(results, "llama"))
-    print("\n--- Gemini metrics ---")
-    print(compute_model_metrics(results, "gemini"))
+    while True:
+        query = input("Your question: ").strip()
+        if query.lower() in ("exit", "quit", ""):
+            print("Goodbye!")
+            break
+
+        try:
+            result = compare_models(query)
+            print_result(result)
+        except Exception as e:
+            print(f"Error processing query: {e}\n")
