@@ -110,8 +110,10 @@ def compute_model_metrics(results, model_key, threshold=0.5):
 
 
 if __name__ == "__main__":
-    print("Running dry run on 5 examples first...")
-    results = run_comparison_evaluation(num_examples=5, checkpoint_path="eval_compare_dry_run.json")
+    print("Running full comparison evaluation on 500 examples...")
+    print("This will take a while — Gemini free-tier pacing means ~4-16 seconds per example.")
+    print("You can stop anytime (Ctrl+C) and re-run to resume from checkpoint.\n")
+    results = run_comparison_evaluation(num_examples=500, checkpoint_path="eval_compare_results.json")
 
     print("\n--- Llama metrics ---")
     print(compute_model_metrics(results, "llama"))
