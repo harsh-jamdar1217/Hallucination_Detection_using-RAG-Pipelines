@@ -41,7 +41,7 @@ def get_model_result(query, answer, context, generate_fn, threshold=0.5):
     return {"predicted_hallucinated": 1 if min_trust < threshold else 0, "min_trust_score": min_trust}
 
 
-def run_comparison_evaluation(num_examples=500, checkpoint_path="eval_compare_results.json", checkpoint_every=10):
+def run_comparison_evaluation(num_examples=100, checkpoint_path="eval_compare_results.json", checkpoint_every=10):
     dataset = load_ragtruth()
     test_set = dataset["test"].select(range(num_examples))
 
@@ -110,10 +110,10 @@ def compute_model_metrics(results, model_key, threshold=0.5):
 
 
 if __name__ == "__main__":
-    print("Running full comparison evaluation on 500 examples...")
+    print("Running full comparison evaluation on 100 examples...")
     print("This will take a while — Gemini free-tier pacing means ~4-16 seconds per example.")
     print("You can stop anytime (Ctrl+C) and re-run to resume from checkpoint.\n")
-    results = run_comparison_evaluation(num_examples=500, checkpoint_path="eval_compare_results.json")
+    results = run_comparison_evaluation(num_examples=100, checkpoint_path="eval_compare_results.json")
 
     print("\n--- Llama metrics ---")
     print(compute_model_metrics(results, "llama"))
