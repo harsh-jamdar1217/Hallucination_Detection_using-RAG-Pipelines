@@ -4,6 +4,8 @@ import os
 import numpy as np
 import pandas as pd
 import streamlit as st
+#Need to do some changes in the UI
+#it is being asked by the peoject guide
 
 from src.retrieve import load_vectorstore, retrieve_chunks
 from src.generate import generate_answer
