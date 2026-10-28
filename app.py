@@ -490,3 +490,4 @@ with tab_how:
 (hallucinated = 1). Precision = of the answers we flagged, how many were truly hallucinated.
 Recall = of the truly hallucinated answers, how many we caught.
 """)
+#this is the final ui required ny the panel members
